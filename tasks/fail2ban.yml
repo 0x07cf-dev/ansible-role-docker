@@ -1,0 +1,22 @@
+---
+- name: Copy jail config into place
+  become: true
+  ansible.builtin.template:
+    src: fail2ban/skeleton.jail.conf.j2
+    dest: "{{ fail2ban_jail_dir | default(ansible_local.fail2ban.dirs.jail) }}/{{ item | replace('.jail.conf.j2', '.conf') }}"
+    owner: root
+    group: root
+    mode: "0644"
+    force: "{{ skeleton_config_update }}"
+  notify: Reload fail2ban
+
+- name: Copy filter config into place
+  become: true
+  ansible.builtin.template:
+    src: fail2ban/skeleton.filter.conf.j2
+    dest: "{{ fail2ban_filter_dir | default(ansible_local.fail2ban.dirs.filter) }}/{{ item | replace('.jail.conf.j2', '.conf') }}"
+    owner: root
+    group: root
+    mode: "0644"
+    force: "{{ skeleton_config_update }}"
+  notify: Reload fail2ban

@@ -1,0 +1,2 @@
+---
+__skeleton_service_path: /etc/systemd/system/{{ skeleton_daemon }}.service"

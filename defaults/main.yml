@@ -1,0 +1,66 @@
+---
+# Setup
+_skeleton_bin_download_dir: "{{ (x_ansible_download_dir | default('/home/' ~ system_owner_user ~ '/.ansible/tmp/downloads')) }}/skeleton"
+skeleton_bin_path: "{{ skeleton_bin_dir }}/{{ skeleton_daemon }}"
+
+# Systemd
+skeleton_service_update: false
+skeleton_state: started
+skeleton_handler_restart_state: restarted
+skeleton_enabled_on_boot: true
+
+# User
+skeleton_service_user: skeleton
+skeleton_service_groups:
+  - "{{ skeleton_service_user }}"
+
+# Network Settings
+skeleton_domain: "{{ network_domain | default(ansible_local.http.domain) | default('localhost') }}"
+skeleton_protocol: https
+skeleton_subdomain: skeleton
+skeleton_fqdn: >-
+  {%- if skeleton_domain != 'localhost' -%}
+    {{ skeleton_subdomain }}.{{ skeleton_domain }}
+  {%- else -%}
+    {{ skeleton_domain }}:{{ skeleton_port }}
+  {%- endif -%}
+
+skeleton_url: "{{ skeleton_protocol }}://{{ skeleton_fqdn }}"
+
+skeleton_port: 0
+skeleton_fallback_ports: [0, 0]
+#   http: [8001, 8002, 8003]
+#   websocket: [3013, 3014, 3015]
+
+# skeleton_bind_address: 0.0.0.0
+# skeleton_web_root: /
+# skeleton_client_ip_header: X-Real-IP
+
+# WebSocket
+# skeleton_websocket_enabled: false
+# skeleton_websocket_address: 0.0.0.0
+# skeleton_websocket_port: 3012
+
+# CloudFlare
+# skeleton_cloudflare_enabled: "{{ fail2ban_cloudflare_enabled | default(ansible_local.fail2ban.cloudflare.on) | default(false) }}"
+# skeleton_cloudflare_token: "{{ fail2ban_cloudflare_token | default(ansible_local.fail2ban.cloudflare.token) }}"
+# skeleton_cloudflare_email: "{{ fail2ban_cloudflare_email | default(ansible_local.fail2ban.cloudflare.email) }}"
+
+# Config
+skeleton_config_update: false
+# Logging
+
+# Database
+skeleton_database_backend: "{{ ansible_local.http.services.database.backend | default('mysql') }}"
+
+# MySQL/MariaDB backend
+skeleton_mysql_host: localhost
+skeleton_mysql_database: skeleton
+skeleton_mysql_database_user: skeleton
+skeleton_mysql_database_user_password: root
+
+# Fail2ban
+skeleton_fail2ban_enabled: "{{ ansible_local.fail2ban.installed | default(false) }}"
+skeleton_fail2ban_maxretry: 3
+skeleton_fail2ban_findtime: 14400
+skeleton_fail2ban_bantime: 14400

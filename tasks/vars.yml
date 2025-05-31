@@ -1,0 +1,46 @@
+---
+- name: Include OS-specific variables ({{ ansible_os_family }})
+  ansible.builtin.include_vars:
+    dir: vars
+    files_matching: "{{ item }}"
+    depth: 1
+  loop:
+    - "all.yml"
+    - "{{ ansible_os_family | lower }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  failed_when: false
+
+- ansible.builtin.set_fact:
+    skeleton_args:
+      skeleton_daemon: __skeleton_daemon
+      skeleton_bin_dir: __skeleton_bin_dir
+      skeleton_data_dir: __skeleton_data_dir
+      skeleton_service_path: __skeleton_service_path
+
+- name: Set Skeleton variables
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ lookup('vars', item.value) }}"
+  when:
+    - vars[item.key] is undefined
+    - vars[item.value] is defined
+  loop: "{{ skeleton_args | dict2items }}"
+
+- name: Check if Skeleton is already installed
+  vars:
+    skeleton_paths:
+      - name: bin
+        path: "{{ skeleton_bin_path }}"
+      - name: config
+        path: "{{ skeleton_config_path }}"
+  block:
+    - name: Find existing Skeleton files
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      loop: "{{ skeleton_paths }}"
+      register: skeleton_files
+
+    - name: Register existing Skeleton files
+      ansible.builtin.set_fact:
+        "skeleton_{{ item.item.name }}_exists": "{{ item.stat.exists }}"
+      loop: "{{ skeleton_files.results }}"

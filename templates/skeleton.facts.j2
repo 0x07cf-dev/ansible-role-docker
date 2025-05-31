@@ -1,0 +1,3 @@
+{{ {
+  "installed": (skeleton_install is succeeded or skeleton_bin_exists) | lower
+} | to_nice_json(sort_keys=False) }}

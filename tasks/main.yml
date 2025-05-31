@@ -1,0 +1,16 @@
+---
+- ansible.builtin.include_tasks: vars.yml
+- ansible.builtin.include_tasks: user.yml
+- ansible.builtin.include_tasks: setup.yml
+- ansible.builtin.include_tasks: auth.yml
+- ansible.builtin.include_tasks: config.yml
+- ansible.builtin.include_tasks: systemd.yml
+
+- ansible.builtin.include_tasks: database/{{ skeleton_database_backend }}.yml
+- ansible.builtin.include_tasks: reverseproxy/{{ skeleton_reverseproxy_backend }}.yml
+  when: skeleton_behind_proxy
+
+- ansible.builtin.include_tasks: fail2ban.yml
+  when: skeleton_fail2ban_enabled
+
+- ansible.builtin.include_tasks: facts.yml

@@ -1,0 +1,64 @@
+---
+- name: Ensure local fact directory exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/ansible/facts.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Register Skeleton facts locally
+  become: true
+  ansible.builtin.template:
+    src: skeleton.facts.j2
+    dest: /etc/ansible/facts.d/skeleton.fact
+    owner: root
+    group: root
+    mode: "0644"
+    force: true
+  register: fail2ban_facts
+
+- name: Register new http facts
+  when: ansible_local.http is defined
+  block:
+    - name: Read http facts file
+      become: true
+      ansible.builtin.slurp:
+        src: /etc/ansible/facts.d/http.fact
+      register: http_existing_facts
+
+    - name: Register existing http facts
+      become: true
+      ansible.builtin.set_fact:
+        http_facts: "{{ http_existing_facts.content | b64decode | from_json }}"
+
+    - name: Remove existing port entries
+      ansible.builtin.set_fact:
+        http_facts: "{{ http_facts | combine({'services': {'ports': filtered_ports}}) }}"
+      vars:
+        filtered_ports: "{{ http_facts.services.ports | dict2items |
+          rejectattr('value', 'eq', skeleton_daemon) | items2dict }}"
+      when: http_facts.services.ports is defined
+
+    - name: Register new http facts
+      ansible.builtin.set_fact:
+        new_http_facts:
+          "{{ {'services': {'reverseproxy': {'daemon': skeleton_daemon, 'port_http': skeleton_port, 'port_websocket': skeleton_websocket_port}}} |
+          combine({'services': {'ports': {skeleton_port: skeleton_daemon, skeleton_websocket_port: skeleton_daemon}}}) }}"
+
+    - name: Register merged http facts locally
+      become: true
+      ansible.builtin.copy:
+        content: "{{ (http_facts | combine(new_http_facts, recursive=True)) | to_nice_json(sort_keys=False) }}\n"
+        dest: /etc/ansible/facts.d/http.fact
+        owner: root
+        group: root
+        mode: "0644"
+        force: true
+      register: http_facts_merged
+
+- name: Reload facts
+  ansible.builtin.setup:
+    filter: ansible_local
+  when: fail2ban_facts is changed or http_facts_merged is changed
