@@ -1,14 +1,19 @@
 ---
-dependencies: []
-
 galaxy_info:
-  author: 0x07cf
-  description: your role description
-  # company: your company (optional)
+  author: "0x07cf"
+  description: Docker on Linux servers.
   license: MIT
-  min_ansible_version: 2.1
+
+  min_ansible_version: "2.1"
   platforms:
     - name: Debian
       versions:
-        - all
-  galaxy_tags: []
+        - buster
+        - bullseye
+        - bookworm
+
+  galaxy_tags:
+    - docker
+    - compose
+
+dependencies: []

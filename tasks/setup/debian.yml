@@ -1,0 +1,27 @@
+---
+- name: Ensure dependencies are installed
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+    state: present
+
+- name: Add Docker repo
+  become: true
+  ansible.builtin.deb822_repository:
+    enabled: true
+    trusted: true
+    types: deb
+    uris: "{{ docker_apt_repo.repo_uri }}"
+    name: "{{ docker_apt_repo.repo_filename }}"
+    signed_by: "{{ docker_apt_repo.key_uri }}"
+    architectures: "{{ 'armhf' if ansible_architecture == 'armv7l' else 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    suites: "{{ docker_apt_repo.suite }}"
+    components: "{{ docker_apt_repo.comp }}"
+  register: docker_apt_repo_added
+
+- name: Update APT cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+  when: docker_apt_repo_added.changed

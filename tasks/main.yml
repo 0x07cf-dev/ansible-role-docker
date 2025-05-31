@@ -1,16 +1,53 @@
 ---
 - ansible.builtin.include_tasks: vars.yml
-- ansible.builtin.include_tasks: user.yml
-- ansible.builtin.include_tasks: setup.yml
-- ansible.builtin.include_tasks: auth.yml
-- ansible.builtin.include_tasks: config.yml
-- ansible.builtin.include_tasks: systemd.yml
 
-- ansible.builtin.include_tasks: database/{{ skeleton_database_backend }}.yml
-- ansible.builtin.include_tasks: reverseproxy/{{ skeleton_reverseproxy_backend }}.yml
-  when: skeleton_behind_proxy
+# Setup.
+- name: Ensure requirements are present on Debian
+  ansible.builtin.include_tasks: setup/debian.yml
+  when: ansible_os_family == "Debian"
 
-- ansible.builtin.include_tasks: fail2ban.yml
-  when: skeleton_fail2ban_enabled
+- name: Ensure Docker packages are installed
+  ansible.builtin.package:
+    name: "{{ docker_packages }}"
+    state: "{{ docker_packages_state }}"
+  notify: Restart Docker
+  ignore_errors: "{{ ansible_check_mode }}"
 
-- ansible.builtin.include_tasks: facts.yml
+- name: Ensure docker-compose-plugin is installed
+  ansible.builtin.package:
+    name: "{{ docker_compose_package }}"
+    state: "{{ docker_compose_package_state }}"
+  notify: restart docker
+  ignore_errors: "{{ ansible_check_mode }}"
+  when: docker_install_compose_plugin | bool
+
+# Config.
+- name: Ensure all Docker dirs exist
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path | default(item) }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - "{{ docker_config_dir }}"
+
+- name: Configure Docker daemon options
+  ansible.builtin.copy:
+    content: "{{ docker_daemon_options | to_nice_json }}"
+    dest: "{{ docker_config_path }}"
+    mode: "0644"
+  when: docker_daemon_options.keys() | length > 0
+  notify: Restart Docker
+
+# Service.
+- name: Ensure Docker service is configured
+  ansible.builtin.service:
+    name: docker
+    state: "{{ docker_service_state }}"
+    enabled: "{{ docker_service_enabled }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+  when: docker_service_manage | bool
+
+- ansible.builtin.meta: flush_handlers

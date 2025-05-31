@@ -1,26 +1,6 @@
 ---
-- name: Start Skeleton
-  become: true
+- name: Restart Docker
   ansible.builtin.service:
-    name: "{{ skeleton_daemon }}"
-    state: "{{ skeleton_state }}"
-
-- name: Restart Skeleton
-  become: true
-  ansible.builtin.service:
-    name: "{{ skeleton_daemon }}"
-    state: "{{ skeleton_handler_restart_state }}"
-
-- name: Reload fail2ban
-  become: true
-  ansible.builtin.service:
-    name: fail2ban
-    state: reloaded
-  when: skeleton_fail2ban_enabled
-
-- name: Reload reverseproxy
-  become: true
-  ansible.builtin.service:
-    name: "{{ ansible_local.http.services.reverseproxy.daemon }}"
-    state: reloaded
-  when: skeleton_behind_proxy
+    name: docker
+    state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"
